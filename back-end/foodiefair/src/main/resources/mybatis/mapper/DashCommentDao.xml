@@ -15,14 +15,7 @@
     <select id="selectDashCommentList" resultType="com.multicampus.foodiefair.dto.CommentDTO">
         SELECT *
         FROM (
-        SELECT tt.*, @rownum := @rownum + 1 AS row_num
-        FROM Comment tt, (SELECT @rownum := 0) r
-        <where>
-            <if test="searchKeyword != null">
-                AND tt.reviewId LIKE CONCAT('%', #{searchKeyword}, '%')
-            </if>
-        </where>
-        ORDER BY
+        SELECT tt.*, ROW_NUMBER() OVER(ORDER BY
         <choose>
             <when test="sortOrder == 'commentIdDESC'">
                 tt.commentId DESC
@@ -40,6 +33,13 @@
                 tt.commentId DESC
             </otherwise>
         </choose>
+        ) row_num
+        FROM Comment tt
+        <where>
+            <if test="searchKeyword != null">
+                AND tt.reviewId LIKE CONCAT('%', #{searchKeyword}, '%')
+            </if>
+        </where>
         ) t
         WHERE row_num BETWEEN #{pageReviewerRequestDto.skip} + 1 AND #{pageReviewerRequestDto.page} * #{pageReviewerRequestDto.size}
     </select>

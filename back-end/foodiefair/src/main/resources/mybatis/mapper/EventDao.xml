@@ -12,25 +12,7 @@
         WHERE s.userId = #{userId} AND s.productId = t.productId
         ) AS saved
         FROM (
-        SELECT tt.*, @rownum := @rownum + 1 AS row_num
-        FROM Product tt, (SELECT @rownum := 0) r
-        <where>
-            <if test="storeFilters != null and storeFilters.size() > 0">
-                AND (
-                <foreach item="filter" collection="storeFilters" separator="OR">
-                    tt.fixedTag LIKE CONCAT('%', #{filter}, '%')
-                </foreach>
-                )
-            </if>
-            <if test="eventFilters != null and eventFilters.size() > 0">
-                AND (
-                <foreach item="filter" collection="eventFilters" separator="OR">
-                    tt.productEvent = #{filter}
-                </foreach>
-                )
-            </if>
-        </where>
-        ORDER BY
+        SELECT tt.*, ROW_NUMBER() OVER(ORDER BY
         <choose>
             <when test="sortOrder == 'popularity'">
                 (tt.productSaved * 0.7 + tt.productViews * 0.3) DESC
@@ -76,13 +58,31 @@
                 tt.releaseDate DESC
             </otherwise>
         </choose>
+        ) row_num
+        FROM product tt
+        <where>
+            <if test="storeFilters != null and storeFilters.size() > 0">
+                AND (
+                <foreach item="filter" collection="storeFilters" separator="OR">
+                    tt.fixedTag LIKE CONCAT('%', #{filter}, '%')
+                </foreach>
+                )
+            </if>
+            <if test="eventFilters != null and eventFilters.size() > 0">
+                AND (
+                <foreach item="filter" collection="eventFilters" separator="OR">
+                    tt.productEvent = #{filter}
+                </foreach>
+                )
+            </if>
+        </where>
         ) t
         WHERE row_num BETWEEN #{pageRequestDto.skip} + 1 AND #{pageRequestDto.page} * #{pageRequestDto.size}
     </select>
 
     <select id="getEventCount" resultType="int">
         SELECT count(*) FROM (
-        SELECT productId FROM Product
+        SELECT productId FROM product
         <where>
             <if test="storeFilters != null and storeFilters.size() > 0">
                 (

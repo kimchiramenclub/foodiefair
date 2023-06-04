@@ -22,68 +22,45 @@
     </update>
 
     <select id="selectFilteredList" resultType="com.multicampus.foodiefair.dto.ProductDTO">
-        SELECT t.*,
+        SELECT *,
         (
         SELECT COUNT(*)
         FROM Saved s
         WHERE s.userId = #{userId} AND s.productId = t.productId
         ) AS saved
         FROM (
-        SELECT tt.*, @rownum := @rownum + 1 AS row_num
-        FROM (
-        SELECT *
-        FROM Product
-        <where>
-            <if test="storeFilters != null and storeFilters.size() > 0">
-                AND (
-                <foreach item="filter" collection="storeFilters" separator="OR">
-                    fixedTag LIKE CONCAT('%', #{filter}, '%')
-                </foreach>
-                )
-            </if>
-            <if test="categoryFilters != null and categoryFilters.size() > 0">
-                AND (
-                <foreach item="filter" collection="categoryFilters" separator="OR">
-                    fixedTag LIKE CONCAT('%', #{filter}, '%')
-                </foreach>
-                )
-            </if>
-            <if test="searchKeyword != null">
-                AND productName LIKE CONCAT('%', #{searchKeyword}, '%')
-            </if>
-        </where>
-        ORDER BY
+        SELECT tt.*, ROW_NUMBER() OVER(ORDER BY
         <choose>
             <when test="sortOrder == 'popularity'">
-                (productSaved * 0.7 + productViews * 0.3) DESC
+                (tt.productSaved * 0.7 + tt.productViews * 0.3) DESC
             </when>
             <when test="sortOrder == 'view'">
-                productViews DESC
+                tt.productViews DESC
             </when>
             <when test="sortOrder == 'saves'">
-                productSaved DESC
+                tt.productSaved DESC
             </when>
             <when test="sortOrder == 'reviews'">
-                productReviews DESC
+                tt.productReviews DESC
             </when>
             <when test="sortOrder == 'releaseDate'">
-                releaseDate DESC
+                tt.releaseDate DESC
             </when>
             <when test="sortOrder == 'lowPrice'">
-                productPrice ASC
+                tt.productPrice ASC
             </when>
             <when test="sortOrder == 'highPrice'">
-                productPrice DESC
+                tt.productPrice DESC
             </when>
             <when test="sortOrder == 'highReviewNum'">
-                (SELECT COUNT(r.productId) FROM Review r WHERE r.productId = productId AND r.receiptImg = 1) DESC
+                (SELECT COUNT(r.productId) FROM Review r WHERE r.productId = tt.productId AND r.receiptImg = 1) DESC
             </when>
             <when test="sortOrder == 'positiveKeyword'">
                 (
                 SELECT SUM(value)
                 FROM Keyword k
                 JOIN JSON_TABLE(k.positiveKeyword, '$.*' COLUMNS (value INT PATH '$')) AS json_values
-                WHERE k.productId = productId
+                WHERE k.productId = tt.productId
                 ) DESC
             </when>
             <when test="sortOrder == 'negativeKeyword'">
@@ -91,21 +68,41 @@
                 SELECT SUM(value)
                 FROM Keyword k
                 JOIN JSON_TABLE(k.negativeKeyword, '$.*' COLUMNS (value INT PATH '$')) AS json_values
-                WHERE k.productId = productId
+                WHERE k.productId = tt.productId
                 ) DESC
             </when>
             <otherwise>
-                releaseDate DESC
+                tt.releaseDate DESC
             </otherwise>
         </choose>
-        ) tt, (SELECT @rownum := 0) r
+        ) row_num
+        FROM product tt
+        <where>
+            <if test="storeFilters != null and storeFilters.size() > 0">
+                AND (
+                <foreach item="filter" collection="storeFilters" separator="OR">
+                    tt.fixedTag LIKE CONCAT('%', #{filter}, '%')
+                </foreach>
+                )
+            </if>
+            <if test="categoryFilters != null and categoryFilters.size() > 0">
+                AND (
+                <foreach item="filter" collection="categoryFilters" separator="OR">
+                    tt.fixedTag LIKE CONCAT('%', #{filter}, '%')
+                </foreach>
+                )
+            </if>
+            <if test="searchKeyword != null">
+                AND tt.productName LIKE CONCAT('%', #{searchKeyword}, '%')
+            </if>
+        </where>
         ) t
         WHERE row_num BETWEEN #{pageRequestDto.skip} + 1 AND #{pageRequestDto.page} * #{pageRequestDto.size}
     </select>
 
     <select id="getFilteredCount" resultType="int">
         SELECT count(*) FROM (
-        SELECT productId FROM Product
+        SELECT productId FROM product
         <where>
             <if test="storeFilters != null and storeFilters.size() > 0">
                 AND (
