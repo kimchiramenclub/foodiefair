@@ -15,34 +15,31 @@
     <select id="selectDashReviewList" resultType="com.multicampus.foodiefair.dto.ReviewDTO">
         SELECT *
         FROM (
-        SELECT tt.*, (@rownum := @rownum + 1) AS row_num
-        FROM (
-        SELECT *
-        FROM Review
-        <where>
-            <if test="searchKeyword != null">
-                AND productId LIKE CONCAT('%', #{searchKeyword}, '%')
-            </if>
-        </where>
+        SELECT tt.*, ROW_NUMBER() OVER(ORDER BY
         <choose>
             <when test="sortOrder == 'reviewIdDESC'">
-                ORDER BY reviewId DESC
+                tt.reviewId DESC
             </when>
             <when test="sortOrder == 'reviewIdASC'">
-                ORDER BY reviewId ASC
+                tt.reviewId ASC
             </when>
             <when test="sortOrder == 'productIdDESC'">
-                ORDER BY productId DESC
+                tt.productId DESC
             </when>
             <when test="sortOrder == 'productIdASC'">
-                ORDER BY productId ASC
+                tt.productId ASC
             </when>
             <otherwise>
-                ORDER BY reviewId DESC
+                tt.reviewId DESC
             </otherwise>
         </choose>
-        LIMIT #{pageReviewerRequestDto.skip}, #{pageReviewerRequestDto.size}
-        ) tt, (SELECT @rownum := 0) r
+        ) row_num
+        FROM Review tt
+        <where>
+            <if test="searchKeyword != null">
+                AND tt.productId LIKE CONCAT('%', #{searchKeyword}, '%')
+            </if>
+        </where>
         ) t
         WHERE row_num BETWEEN #{pageReviewerRequestDto.skip} + 1 AND #{pageReviewerRequestDto.page} * #{pageReviewerRequestDto.size}
     </select>
