@@ -7,6 +7,7 @@
 <ul>
   <li>멀티잇 백엔드 개발자 취업캠프 8회차 2조</li>
   <li>프로젝트 기간 : 2023.04.05 ~ 2023.05.16</li>
+  <li><a href="https://youtu.be/TIpQppvoK_o">FoodieFair 시연 영상</a></li>
   <li><a href="https://www.foodiefair.store/">FoodieFair</a></li>
   <li><a href="https://www.notion.so/2-e35d4fcfe5ce4ccea8effd4dd945935a">FoodieFair Notion</a></li>
 </ul>
